@@ -992,9 +992,9 @@ module.exports = function (redom) {
 
     targetDiv.appendChild(div);
     t.strictEquals(targetDiv.__redom_lifecycle, undefined);
-
+    
     unmount(div, item);
-    t.strictEquals(targetDiv.__redom_lifecycle, null);
+    t.strictEquals(targetDiv.__redom_lifecycle, undefined);
   });
 
   test('optimized list diff', function (t) {
@@ -1013,5 +1013,94 @@ module.exports = function (redom) {
     items.update('a e c d b f g'.split(' ').map(function (id) { return { id: id }; }));
 
     t.equals(remounts, 1);
+  });
+
+  test('make sure setChildren unmount with normal div in between calls the lifecycle of all children', function (t) {
+    t.plan(8);
+
+    var mounts = 0;
+    var unmounts = 0;
+
+    function onmount() {
+      mounts += 1;
+    }
+    function onunmount() {
+      unmounts += 1;
+    }
+
+
+    function Child () {
+      this.el = document.createElement('div');
+      this.onmount = onmount;
+      this.onunmount = onunmount;
+    }
+
+    function Parent () {
+      this.content = document.createElement('div');
+      this.el = document.createElement('div');
+      this.el.appendChild(this.content);
+      this.onmount = onmount
+      this.onunmount = onunmount;
+    }
+
+    function Top() {
+      this.el = document.createElement('div');
+    }
+
+    var parent = new Parent();
+
+    // Mount into dom
+    var base = document.createElement('div');
+    document.body.appendChild(base);
+    var top = new Top();
+    t.equals(top.el.__redom_lifecycle, undefined);
+
+    mount(base, top);
+    mount(top, parent);
+    setChildren(parent.content, new Child()); 
+    t.equals(mounts, 2);
+    t.equals(unmounts, 0);
+    setChildren(parent.content, new Child()); 
+    t.equals(mounts, 3);
+    t.equals(unmounts, 1);
+
+    // Now the failure: unmount the parent and child onunmount was not called when a div in between in some cases
+    unmount(top, parent);
+    t.equals(unmounts, 3);
+
+    // Check that we are not leaving wrong counters above
+    t.equals(top.el.__redom_lifecycle.onmount, 0);
+    t.equals(top.el.__redom_lifecycle.onunmount, 0);
+  });
+
+  test('test deep unmount', function (t) {
+    t.plan(1);
+    var unmounts = 0;
+    var deeptree = document.createElement('div')
+    deeptree.appendChild(document.createElement('div'))
+    deeptree.firstChild.appendChild(document.createElement('div'))
+    deeptree.firstChild.firstChild.appendChild(document.createElement('div'))
+
+    function DeepComponent() {
+      this.el = el('div')
+      this.onunmount = function () {
+        unmounts += 1;
+      }
+    }
+
+    function TopComponent() {
+      this.el = el('div');
+      this.onunmount = function () {
+        unmounts += 1;
+      }
+    }
+
+    var top = new TopComponent();
+    var deep = new DeepComponent();
+    mount(document.body, top);
+    mount(top, deeptree);
+    mount(deeptree.firstChild.firstChild.firstChild, deep);
+    unmount(document.body, top);
+    t.equals(unmounts, 2);
   });
 };

@@ -76,17 +76,21 @@ function doUnmount (child, childEl, parentEl) {
     trigger(childEl, 'onunmount');
   }
 
+  // Triggered = if we see a redom parent, we stop walking up, since the mount function also does the same.
+  var triggered = false;
+
   while (traverse) {
-    var parentHooks = traverse.__redom_lifecycle || {};
-
-    for (var hook in hooks) {
-      if (parentHooks[hook]) {
-        parentHooks[hook] -= hooks[hook];
-      }
+    if (triggered) {
+      break;
     }
+    var traverseHooks = (traverse.__redom_lifecycle || {});
 
-    if (hooksAreEmpty(parentHooks)) {
-      traverse.__redom_lifecycle = null;
+    // Search for a redom traverse view and trigger
+    for (var hook in hooks) {
+      if (traverseHooks[hook]) {
+        traverseHooks[hook] -= hooks[hook];
+        triggered = true;
+      }
     }
 
     traverse = traverse.parentNode;
@@ -217,10 +221,10 @@ function doMount (child, childEl, parentEl, oldParent) {
 
   while (traverse) {
     var parent = traverse.parentNode;
-    var parentHooks = traverse.__redom_lifecycle || (traverse.__redom_lifecycle = {});
+    var traverseHooks = traverse.__redom_lifecycle || (traverse.__redom_lifecycle = {});
 
     for (var hook in hooks) {
-      parentHooks[hook] = (parentHooks[hook] || 0) + hooks[hook];
+      traverseHooks[hook] = (traverseHooks[hook] || 0) + hooks[hook];
     }
 
     if (triggered) {

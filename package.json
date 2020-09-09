@@ -23,6 +23,7 @@
     "lint": "semistandard 'esm/**/*.js' 'test/test.js'",
     "test": "npm run lint && rollup -c -n redom -f cjs esm/index.js -o test/redom.js && browserify -t coverify test/index.js | tape-run | coverify",
     "nocoverage": "semistandard esm/index.js && rollup -c -n redom -f cjs esm/index.js -o test/redom.js && browserify test/index.js | tape-run",
+    "nosemi": "rollup -c -n redom -f cjs esm/index.js -o test/redom.js && browserify test/index.js | tape-run",
     "justtest": "browserify -t coverify test/index.js | tape-run | coverify"
   },
   "repository": {

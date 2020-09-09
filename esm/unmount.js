@@ -33,17 +33,21 @@ export function doUnmount (child, childEl, parentEl) {
     trigger(childEl, 'onunmount');
   }
 
+  // Triggered = if we see a redom parent, we stop walking up, since the mount function also does the same.
+  let triggered = false;
+
   while (traverse) {
-    const parentHooks = traverse.__redom_lifecycle || {};
-
-    for (const hook in hooks) {
-      if (parentHooks[hook]) {
-        parentHooks[hook] -= hooks[hook];
-      }
+    if (triggered) {
+      break;
     }
+    const traverseHooks = (traverse.__redom_lifecycle || {});
 
-    if (hooksAreEmpty(parentHooks)) {
-      traverse.__redom_lifecycle = null;
+    // Search for a redom traverse view and trigger
+    for (const hook in hooks) {
+      if (traverseHooks[hook]) {
+        traverseHooks[hook] -= hooks[hook];
+        triggered = true;
+      }
     }
 
     traverse = traverse.parentNode;

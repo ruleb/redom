@@ -111,10 +111,10 @@ function doMount (child, childEl, parentEl, oldParent) {
 
   while (traverse) {
     const parent = traverse.parentNode;
-    const parentHooks = traverse.__redom_lifecycle || (traverse.__redom_lifecycle = {});
+    const traverseHooks = traverse.__redom_lifecycle || (traverse.__redom_lifecycle = {});
 
     for (const hook in hooks) {
-      parentHooks[hook] = (parentHooks[hook] || 0) + hooks[hook];
+      traverseHooks[hook] = (traverseHooks[hook] || 0) + hooks[hook];
     }
 
     if (triggered) {
